@@ -49,18 +49,17 @@ impl eframe::App for MyApp {
         let arr: &mut[u8] = &mut [0; 16];
         self.usb_handle.read_timeout(arr, 1).unwrap();
         dbg!(arr[0]);
-        if arr[0] == 0x69 {
-            if let Some(x) = self.cal_step {
-                self.cal_step = Some(x+1);
-            }
-        } else if arr[0] == 0x68 {
-            if let Some(x) = self.cal_step {
-                self.cal_step = Some(x-1);
-            }
-        } else {
-            self.stick_x = arr[1] as u16;
-            self.stick_y = arr[2] as u16;
-        }
+        // if arr[0] == 0x69 {
+        //     if let Some(x) = self.cal_step {
+        //         self.cal_step = Some(x+1);
+        //     }
+        // } else if arr[0] == 0x68 {
+        //     if let Some(x) = self.cal_step {
+        //         self.cal_step = Some(x-1);
+        //     }
+        // } else {
+        self.stick_x = arr[1] as u16;
+        self.stick_y = arr[2] as u16;
 
         egui::CentralPanel::default().show(ctx, |ui| {
             match &self.cal_step {
@@ -69,9 +68,26 @@ impl eframe::App for MyApp {
             }
             ui.label(format!("X: {}", self.stick_x));
             ui.label(format!("Y: {}", self.stick_y));
-            if ui.button("Calibration").clicked() {
-                self.usb_handle.send_feature_report(&[0x01, 0x69]).unwrap();
+            if let Some(x) = self.cal_step {
+                if ui.button("Next").clicked() {
+                    self.usb_handle.send_feature_report(&[0x69, 0x69]).unwrap();
+                    if (x+1) > 16 {
+                        self.cal_step = None;
+                    } else {
+                        self.cal_step = Some(x+1);
+                    }
+                }
+                if ui.button("Prev").clicked() {
+                    self.usb_handle.send_feature_report(&[0x68, 0x69]).unwrap();
+                    self.cal_step = Some(x-1);
+                }
+            } else {
+                if ui.button("Calibration").clicked() {
+                    self.usb_handle.send_feature_report(&[0x01, 0x69]).unwrap();
+                    self.cal_step = Some(1);
+                }
             }
+    
 
             // if ui.button("Get state").clicked() {
             //     let now = Instant::now();
